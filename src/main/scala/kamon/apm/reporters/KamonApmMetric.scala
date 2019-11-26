@@ -1,4 +1,5 @@
-package kamon.apm.reporters
+package kamon.apm
+package reporters
 
 import java.nio.ByteBuffer
 import java.time.Duration
@@ -120,7 +121,15 @@ private[apm] class KamonApmMetric(codeProvidedPlan: Option[Plan]) extends Metric
 
   private def toIngestionMetricValue(metricType: InstrumentType)(metric: MetricValue): IngestionV1.Metric = {
     valueBuffer.clear()
-    ZigZag.putLong(valueBuffer, metricScaler.scaleMetricValue(metric).value)
+    metricType match {
+      case COUNTER =>
+        ZigZag.putLong(valueBuffer, metricScaler.scaleMetricValue(metric).value)
+      case GAUGE =>
+        val offset = countsArrayIndex(metricScaler.scaleMetricValue(metric).value)
+        if(offset > 0) ZigZag.putLong(valueBuffer, -offset)
+        ZigZag.putLong(valueBuffer, 1)
+    }
+
     valueBuffer.flip()
 
     IngestionV1.Metric.newBuilder()
