@@ -39,12 +39,14 @@ private[apm] class KamonApmTracing extends SpanReporter {
   }
 
   private def convert(span: Span.FinishedSpan): IngestionV1.Span = {
-    val tags = span.tags.mapValues(_ match {
-      case TagValue.True  => "true"
-      case TagValue.False => "false"
-      case v:TagValue.String => v.string
-      case n:TagValue.Number => n.number.toString
-    })
+    val tags = span.tags
+      .filter { case (key, value) => key != null && value != null }
+      .mapValues(_ match {
+        case TagValue.True  => "true"
+        case TagValue.False => "false"
+        case v:TagValue.String => v.string
+        case n:TagValue.Number => n.number.toString
+      })
 
     val marks = span.marks.map { m =>
       IngestionV1.Mark
